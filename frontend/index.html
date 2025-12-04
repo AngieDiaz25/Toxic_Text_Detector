@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toxic Text Detector</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ Toxic Text Detector</h1>
+            <p class="subtitle">Detecta toxicidad en textos usando IA</p>
+        </header>
+
+        <main>
+            <section class="input-section">
+                <h2>Analizar Texto</h2>
+                <textarea 
+                    id="textInput" 
+                    placeholder="Escribe aqui el texto que quieres analizar..."
+                    rows="5"
+                ></textarea>
+                <button id="analyzeBtn" onclick="analyzeText()">
+                    Analizar Texto
+                </button>
+                <div id="loading" class="loading hidden">
+                    Analizando...
+                </div>
+            </section>
+
+            <section id="resultSection" class="result-section hidden">
+                <h2>Resultado del Análisis</h2>
+                <div id="resultContent"></div>
+            </section>
+
+            <section class="history-section">
+                <div class="history-header">
+                    <h2>Historial de Análisis</h2>
+                    <button id="refreshBtn" onclick="loadHistory()">
+                        Actualizar
+                    </button>
+                </div>
+                <div id="historyContent" class="history-content">
+                    Cargando historial...
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Powered by toxic-bert | Data Engineering Project 2024</p>
+        </footer>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
