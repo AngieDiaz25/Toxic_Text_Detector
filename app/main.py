@@ -1,8 +1,14 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from sqlalchemy.orm import Session
+from typing import List
 from app.schemas import TextInput, PredictionOutput
 from app.inference import detector
+from app.database import engine, get_db, Base
+from app.models import Prediction
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Toxic Text Detector API",
@@ -80,7 +86,13 @@ async def root():
             <div class="endpoint">
                 <span class="method post">POST</span>
                 <code>/predict</code>
-                <p>Analiza un texto</p>
+                <p>Analiza un texto y guarda en BD</p>
+            </div>
+            
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <code>/history</code>
+                <p>Muestra historial de predicciones</p>
             </div>
             
             <div class="endpoint">
@@ -109,11 +121,45 @@ async def health_check():
     }
 
 @app.post("/predict", response_model=PredictionOutput)
-async def predict_toxicity(input_data: TextInput):
+async def predict_toxicity(input_data: TextInput, db: Session = Depends(get_db)):
     try:
         result = detector.predict(input_data.text)
+        
+        db_prediction = Prediction(
+            text=result["text"],
+            is_toxic=result["is_toxic"],
+            main_category=result["main_category"],
+            confidence=result["confidence"]
+        )
+        db_prediction.set_labels(result["labels"])
+        
+        db.add(db_prediction)
+        db.commit()
+        db.refresh(db_prediction)
+        
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail="Error interno")
+
+@app.get("/history")
+async def get_history(limit: int = 10, db: Session = Depends(get_db)):
+    predictions = db.query(Prediction).order_by(Prediction.timestamp.desc()).limit(limit).all()
+    
+    results = []
+    for pred in predictions:
+        results.append({
+            "id": pred.id,
+            "timestamp": pred.timestamp.isoformat(),
+            "text": pred.text,
+            "is_toxic": pred.is_toxic,
+            "main_category": pred.main_category,
+            "confidence": pred.confidence,
+            "labels": pred.get_labels()
+        })
+    
+    return {
+        "total": len(results),
+        "predictions": results
+    }
